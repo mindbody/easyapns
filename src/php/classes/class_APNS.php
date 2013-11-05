@@ -69,7 +69,7 @@ class APNS {
 	* @var bool
 	* @access private
 	*/
-	private $logErrors = true;
+	private $logErrors = false;
 
 	/**
 	* Log path for APNS errors
@@ -101,7 +101,7 @@ class APNS {
         * @var string					      
         * @access private				      
         */						      
-	private $passphrase = 'passphrase';
+	private $passphrase = '';
 	
 	/**
 	* Apples Production APNS Gateway
@@ -133,7 +133,7 @@ class APNS {
         * @var string					      
         * @access private				      
         */						      
-        private $sandboxPassphrase = 'passphrase';	
+        private $sandboxPassphrase = '';	
 	
 	/**
 	* Apples Sandbox APNS Gateway
@@ -166,6 +166,13 @@ class APNS {
 	* @access private
 	*/
 	private $sslStreams;
+	
+	/**
+	 * A locationID or array of locationIDs
+	 * 
+	 * @var mixed
+	 */
+	private $clientID;
 
 	/**
 	 * Constructor.
@@ -202,7 +209,7 @@ class APNS {
 	 * @param string $logPath Path to the log file.
 	 * @access 	public
 	 */
-	function __construct($db, $args=NULL, $certificate=NULL, $sandboxCertificate=NULL, $logPath=NULL) {
+	function __construct($db, $args=NULL, $certificate=NULL, $sandboxCertificate=NULL, $logPath=NULL, $clientId=NULL) {
 
 		if(!empty($certificate) && file_exists($certificate))
 		{
@@ -214,19 +221,25 @@ class APNS {
 			$this->sandboxCertificate = $sandboxCertificate;
 		}
 
+		if(is_array($clientId)){
+			$this->clientID = implode("','",$clientId);
+		}else{
+			$this->clientID = $clientId;
+		}
+
 		$this->db = $db;
 		$this->checkSetup();
 		$this->apnsData = array(
 			'production'=>array(
 				'certificate'=>$this->certificate,
 				'ssl'=>$this->ssl,
-				'feedback'=>$this->feedback
+				'feedback'=>$this->feedback,
 				'passphrase'=>$this->passphrase	
 			),
 			'sandbox'=>array(
 				'certificate'=>$this->sandboxCertificate,
 				'ssl'=>$this->sandboxSsl,
-				'feedback'=>$this->sandboxFeedback
+				'feedback'=>$this->sandboxFeedback,
 				'passphrase'=>$this->sandboxPassphrase	
 			)
 		);
@@ -354,6 +367,7 @@ class APNS {
 				)
 				ON DUPLICATE KEY UPDATE
 				# If not using real UUID (iOS5+), uid may change on reinstall.
+				`clientid`={$clientid},
 				`deviceuid`='{$deviceuid}',
 				`devicetoken`='{$devicetoken}',
 				`appversion`='{$appversion}',
@@ -402,8 +416,12 @@ class APNS {
 			LEFT JOIN `apns_devices` ON (`apns_devices`.`pid` = `apns_messages`.`fk_device` AND `apns_devices`.`clientid` = `apns_messages`.`clientid`)
 			WHERE `apns_messages`.`status`='queued'
 				AND `apns_messages`.`delivery` <= NOW()
-				AND `apns_devices`.`status`='active'
-			GROUP BY `apns_messages`.`fk_device`
+				AND `apns_devices`.`status`='active' \n";
+                if (!is_null($this->clientID)){
+					$sql .= " AND `apns_messages`.`clientid` in ('{$this->clientID}') \n";
+				}
+		
+		$sql .= " GROUP BY `apns_messages`.`fk_device`
 			ORDER BY `apns_messages`.`created` ASC
 			LIMIT 100;";
 
@@ -429,8 +447,12 @@ class APNS {
 			LEFT JOIN `apns_devices` ON (`apns_devices`.`pid` = `apns_messages`.`fk_device` AND `apns_devices`.`clientid` = `apns_messages`.`clientid`)
 			WHERE `apns_messages`.`status`='queued'
 				AND `apns_messages`.`delivery` <= NOW()
-				AND `apns_devices`.`status`='active'
-			ORDER BY `apns_messages`.`created` ASC
+				AND `apns_devices`.`status`='active' \n";
+                if (!is_null($this->clientID)){
+					$sql .= " AND `apns_messages`.`clientid` in ('{$this->clientID}') \n";
+				}
+		
+		$sql .= " ORDER BY `apns_messages`.`created` ASC
 			LIMIT 100;";
 
 		$this->_iterateMessages($sql);
@@ -686,8 +708,9 @@ class APNS {
 		$error .= "\n";
 		$i=1;
 		foreach($backtrace as $errorcode){
-			$file = ($errorcode['file']!='') ? "-> File: ".basename($errorcode['file'])." (line ".$errorcode['line'].")":"";
-			$error .= "\n\t".$i.") ".$errorcode['class']."::".$errorcode['function']." {$file}";
+			$class_name = isset($errorcode['class']) ? $errorcode['class'] : " ";
+			$file = (isset($errorcode['file']) && $errorcode['file']!='') ? "-> File: ".basename($errorcode['file'])." (line ".$errorcode['line'].")":"";
+			$error .= "\n\t".$i.") ". $class_name . "::".$errorcode['function']." {$file}";
 			$i++;
 		}
 		$error .= "\n\n";
@@ -862,8 +885,11 @@ class APNS {
 			}
 
 		// No recipients left?
-		if (empty($list))
+		if (empty($list)){
 			$this->_triggerError('No valid recipient was provided.');
+			unset($this->message);
+			return;
+		}
 
 		// Get the devices.
 		// fetch the users id and check to make sure they have certain notifications enabled before trying to send anything to them.
