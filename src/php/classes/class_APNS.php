@@ -382,7 +382,7 @@ class APNS {
 				`pushsound`='{$pushsound}',
 				`status`='active',
 				`modified`=NOW(),
-				`clientidmbo`={$clientidmbo};";
+				`clientidmbo`='{$clientidmbo}';";
 		$this->db->query($sql);
 	}
 
