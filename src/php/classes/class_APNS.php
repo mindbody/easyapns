@@ -175,6 +175,27 @@ class APNS {
 	private $clientID;
 
 	/**
+	 * For parallel processing, we use a processID to identify which message is being
+	 * consumed by a process
+	 * 
+	 */
+	private $processID;
+
+	/**
+	 * For parallel processing, we use a serverName to identify which message is being
+	 * consumed by a server
+	 * 
+	 */
+	private $serverName;
+	
+	/**
+	 * Maximum amount of messages to be queued by a server
+	 * 
+	 * 
+	 */
+	const queueProcessingLimit = 250;
+
+	/**
 	 * Constructor.
 	 *
 	 * Initializes a database connection and perfoms any tasks that have been assigned.
@@ -1147,6 +1168,85 @@ class APNS {
 	 */
 	public function processQueue(){
 		$this->_fetchMessages();
+	}
+
+	private function _startMultiProcessingMessages(){
+		$lock = "LOCK TABLES `apns_messages` READ, `apns_devices` READ, `apns_queue` as aq READ, `apns_queue` WRITE;";
+		$unlock = "UNLOCK TABLES;";
+		$this->db->query($lock);
+		$messageIDsSql = "SELECT
+				`apns_messages`.`pid`,
+				'{$this->serverName}',
+				{$this->processID}
+			FROM `apns_messages`
+			LEFT JOIN `apns_devices` ON (`apns_devices`.`pid` = `apns_messages`.`fk_device` AND `apns_devices`.`clientid` = `apns_messages`.`clientid`)
+			LEFT JOIN `apns_queue` as `aq` ON `apns_messages`.`pid` = `aq`.`apns_message_pid`
+			WHERE `apns_messages`.`status`='queued'
+				AND `apns_messages`.`delivery` <= NOW()
+				AND `apns_devices`.`status`='active'
+				AND `aq`.`server_name` is NULL
+				AND `aq`.`process_id` is NULL \n";
+                if (!is_null($this->clientID)){
+					$messageIDsSql .= " AND `apns_messages`.`clientid` in ('{$this->clientID}') \n";
+				}
+		
+		$messageIDsSql .= " GROUP BY `apns_messages`.`fk_device`
+			ORDER BY `apns_messages`.`created` ASC
+			LIMIT " . self::queueProcessingLimit;
+
+		$sql = "INSERT INTO `apns_queue`
+				(`apns_message_pid`, `server_name`, `process_id`)
+				{$messageIDsSql};";
+		$this->db->query($sql);
+		$this->db->query($unlock);
+	}
+	
+	private function _stopMultiProcessingMessages(){
+		$sql = "DELETE FROM `apns_queue` 
+			WHERE `apns_queue`.`server_name` =  '{$this->serverName}'
+				AND `apns_queue`.`process_id` = {$this->processID}";
+		$this->db->query($sql);
+		unset($this->processID);
+		unset($this->serverName);
+	}
+	
+	/**
+	 * Fetch Messages For Server and Process
+	 *
+	 * This gets called by a cron job that runs as often as you want.  You might want to set it for every minute.
+	 *
+	 * @access private
+	 */
+	private function _processMessagesInQueue(){
+		$sql = "SELECT
+				`apns_messages`.`pid`,
+				`apns_messages`.`message`,
+				`apns_devices`.`devicetoken`,
+				`apns_devices`.`development`
+			FROM `apns_messages`
+			LEFT JOIN `apns_devices` ON (`apns_devices`.`pid` = `apns_messages`.`fk_device` AND `apns_devices`.`clientid` = `apns_messages`.`clientid`)
+			LEFT JOIN `apns_queue` ON `apns_messages`.`pid` = `apns_queue`.`apns_message_pid`
+			WHERE `apns_messages`.`status`='queued'
+				AND `apns_messages`.`delivery` <= NOW()
+				AND `apns_devices`.`status`='active'
+				AND `apns_queue`.`server_name` = '{$this->serverName}'
+				AND `apns_queue`.`process_id` = {$this->processID}\n";
+                if (!is_null($this->clientID)){
+					$sql .= " AND `apns_messages`.`clientid` in ('{$this->clientID}') \n";
+				}
+		
+		$sql .= " GROUP BY `apns_messages`.`fk_device`
+			ORDER BY `apns_messages`.`created` ASC;";
+
+		$this->_iterateMessages($sql);
+	}
+
+	public function processQueueWithProcessID($processID,$serverName){
+		$this->processID = $processID;
+		$this->serverName = $serverName;
+		$this->_startMultiProcessingMessages();
+		$this->_processMessagesInQueue();
+		$this->_stopMultiProcessingMessages();
 	}
 }
 ?>
