@@ -282,7 +282,8 @@ class APNS {
 						$args['pushalert'],
 						$args['pushsound'],
 						isset($args['clientid'])?$args['clientid']:null,
-						isset($args['clientidmbo'])?$args['clientidmbo']:null
+						isset($args['clientidmbo'])?$args['clientidmbo']:null,
+						isset($args['studio_id'])?$args['studio_id']:null
 					);
 					break;
 
@@ -341,7 +342,7 @@ class APNS {
  	 * @param string $clientid The clientid of the app for message grouping
 	 * @access private
 	 */
-	private function _registerDevice($appname, $appversion, $deviceuid, $devicetoken, $devicename, $devicemodel, $deviceversion, $pushbadge, $pushalert, $pushsound, $clientid = NULL, $clientidmbo = NULL){
+	private function _registerDevice($appname, $appversion, $deviceuid, $devicetoken, $devicename, $devicemodel, $deviceversion, $pushbadge, $pushalert, $pushsound, $clientid = NULL, $clientidmbo = NULL, $studio_id = NULL){
 
 		if(strlen($appname)==0) $this->_triggerError('Application Name must not be blank.', E_USER_ERROR);
 		else if(strlen($appversion)==0) $this->_triggerError('Application Version must not be blank.', E_USER_ERROR);
@@ -366,6 +367,7 @@ class APNS {
 		$pushsound = $this->db->prepare($pushsound);
 		$clientid = $this->db->prepare($clientid);
 		$clientidmbo = $this->db->prepare($clientidmbo);
+		$studio_id = $this->db->prepare($studio_id);
 
 		// store device for push notifications
 		$this->db->query("SET NAMES 'utf8';"); // force utf8 encoding if not your default
@@ -387,7 +389,8 @@ class APNS {
 					'active',
 					NOW(),
 					NOW(),
-					'{$clientidmbo}'
+					'{$clientidmbo}',
+					{$studio_id}
 				)
 				ON DUPLICATE KEY UPDATE
 				# If not using real UUID (iOS5+), uid may change on reinstall.
@@ -403,7 +406,8 @@ class APNS {
 				`pushsound`='{$pushsound}',
 				`status`='active',
 				`modified`=NOW(),
-				`clientidmbo`='{$clientidmbo}';";
+				`clientidmbo`='{$clientidmbo}',
+				`studio_id`={$studio_id};";
 		$this->db->query($sql);
 	}
 
