@@ -109,7 +109,7 @@ class APNS {
 	* @var string
 	* @access private
 	*/
-	private $ssl = 'ssl://gateway.push.apple.com:2195';
+	private $ssl = 'tls://gateway.push.apple.com:2195';
 
 	/**
 	* Apples Production APNS Feedback Service
@@ -117,7 +117,7 @@ class APNS {
 	* @var string
 	* @access private
 	*/
-	private $feedback = 'ssl://feedback.push.apple.com:2196';
+	private $feedback = 'tls://feedback.push.apple.com:2196';
 
 	/**
 	* Absolute path to your Development Certificate
@@ -141,7 +141,7 @@ class APNS {
 	* @var string
 	* @access private
 	*/
-	private $sandboxSsl = 'ssl://gateway.sandbox.push.apple.com:2195';
+	private $sandboxSsl = 'tls://gateway.sandbox.push.apple.com:2195';
 
 	/**
 	* Apples Sandbox APNS Feedback Service
@@ -149,7 +149,7 @@ class APNS {
 	* @var string
 	* @access private
 	*/
-	private $sandboxFeedback = 'ssl://feedback.sandbox.push.apple.com:2196';
+	private $sandboxFeedback = 'tls://feedback.sandbox.push.apple.com:2196';
 
 	/**
 	* Message to push to user
@@ -353,7 +353,10 @@ class APNS {
 		else if(strlen($deviceversion)==0) $this->_triggerError('Device Version must not be blank.', E_USER_ERROR);
 		else if($pushbadge!='disabled' && $pushbadge!='enabled') $this->_triggerError('Push Badge must be either Enabled or Disabled.', E_USER_ERROR);
 		else if($pushalert!='disabled' && $pushalert!='enabled') $this->_triggerError('Push Alert must be either Enabled or Disabled.', E_USER_ERROR);
-		else if($pushsound!='disabled' && $pushsound!='enabled') $this->_triggerError('Push Sount must be either Enabled or Disabled.', E_USER_ERROR);
+		else if($pushsound!='disabled' && $pushsound!='enabled') $this->_triggerError('Push Sound must be either Enabled or Disabled.', E_USER_ERROR);
+
+		//setting environment using default private value if no value provided
+		$environment = is_null($environment)?$this->DEVELOPMENT:$environment;
 
 		$appname = $this->db->prepare($appname);
 		$appversion = $this->db->prepare($appversion);
@@ -385,7 +388,7 @@ class APNS {
 					'{$pushbadge}',
 					'{$pushalert}',
 					'{$pushsound}',
-					'{$this->DEVELOPMENT}',
+					'{$environment}',
 					'active',
 					NOW(),
 					NOW(),
@@ -404,6 +407,7 @@ class APNS {
 				`pushbadge`='{$pushbadge}',
 				`pushalert`='{$pushalert}',
 				`pushsound`='{$pushsound}',
+				`development`='{$environment}',
 				`status`='active',
 				`modified`=NOW(),
 				`clientidmbo`='{$clientidmbo}',
@@ -982,13 +986,17 @@ class APNS {
 					unset($usermessage['aps']);
 				}
 
-				$fk_device = $this->db->prepare($deviceid);
-				$message = $this->_jsonEncode($usermessage);
-				$message = $this->db->prepare($message);
-				$delivery = (!empty($when)) ? "'{$when}'":'NOW()';
+				if(empty($usermessage)) {
+					$this->_triggerError('Empty payload. Message will not be delivered.');
+				}
+				else {
+					$fk_device = $this->db->prepare($deviceid);
+					$message = $this->_jsonEncode($usermessage);
+					$message = $this->db->prepare($message);
+					$delivery = (!empty($when)) ? "'{$when}'":'NOW()';
 
-				$this->db->query("SET NAMES 'utf8';"); // force utf8 encoding if not your default
-				$sql = "INSERT INTO `apns_messages`
+					$this->db->query("SET NAMES 'utf8';"); // force utf8 encoding if not your default
+					$sql = "INSERT INTO `apns_messages`
 						VALUES (
 							NULL,
 							'{$clientId}',
@@ -999,7 +1007,9 @@ class APNS {
 							NOW(),
 							NOW()
 						);";
-				$this->db->query($sql);
+					$this->db->query($sql);
+				}
+
 				unset($usermessage);
 			}
 		}
