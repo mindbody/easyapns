@@ -342,7 +342,7 @@ class APNS {
  	 * @param string $clientid The clientid of the app for message grouping
 	 * @access private
 	 */
-	private function _registerDevice($appname, $appversion, $deviceuid, $devicetoken, $devicename, $devicemodel, $deviceversion, $pushbadge, $pushalert, $pushsound, $clientid = NULL, $clientidmbo = NULL, $studio_id = NULL){
+	private function _registerDevice($appname, $appversion, $deviceuid, $devicetoken, $devicename, $devicemodel, $deviceversion, $pushbadge, $pushalert, $pushsound, $clientid = NULL, $clientidmbo = NULL, $studio_id = NULL, $environment = NULL){
 
 		if(strlen($appname)==0) $this->_triggerError('Application Name must not be blank.', E_USER_ERROR);
 		else if(strlen($appversion)==0) $this->_triggerError('Application Version must not be blank.', E_USER_ERROR);
