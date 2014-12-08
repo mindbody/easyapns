@@ -1262,5 +1262,9 @@ class APNS {
 		$this->_processMessagesInQueue();
 		$this->_stopMultiProcessingMessages();
 	}
+
+    public function setShowErrors($showErrors){
+        $this->showErrors = $showErrors;
+    }
 }
 ?>
