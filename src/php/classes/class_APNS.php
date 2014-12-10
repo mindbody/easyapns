@@ -950,7 +950,7 @@ class APNS {
 			$pushsound = $this->db->prepare($row['pushsound']);
 
 			// has user disabled messages?
-			if($pushbadge=='disabled' && $pushalert=='disabled' && $pushsound=='disabled')
+			if($pushalert=='disabled')
 				$deliver = false;
 
 			if($deliver===false && $result->num_rows > 0) {
