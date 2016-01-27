@@ -310,7 +310,7 @@ class APNS {
 	 * @access private
 	 */
 	private function checkSetup(){
-		if(!file_exists($this->certificate)) $this->_triggerError('Missing Production Certificate.', E_USER_ERROR);
+		if(!file_exists($this->certificate)) $this->_triggerError('Missing Production Certificate.', E_USER_WARNING);
 		if(!file_exists($this->sandboxCertificate)) $this->_triggerError('Missing Sandbox Certificate.', E_USER_WARNING);
 		
 		if (!isset($this->passphrase) || !isset($this->sandboxPassphrase))																	      
