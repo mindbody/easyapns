@@ -441,6 +441,7 @@ class APNS {
 	private function _fetchMessages(){
 		// only send one message per user... oldest message first
 		$sql = "SELECT
+				DISTINCT `apns_messages`.`fk_device`,
 				`apns_messages`.`pid`,
 				`apns_messages`.`message`,
 				`apns_devices`.`devicetoken`,
@@ -454,8 +455,7 @@ class APNS {
 					$sql .= " AND `apns_messages`.`clientid` in ('{$this->clientID}') \n";
 				}
 		
-		$sql .= " GROUP BY `apns_messages`.`fk_device`
-			ORDER BY `apns_messages`.`created` ASC
+		$sql .= " ORDER BY `apns_messages`.`created` ASC
 			LIMIT 100;";
 
 		$this->_iterateMessages($sql);
@@ -1189,9 +1189,10 @@ class APNS {
 		$unlock = "UNLOCK TABLES;";
 		$this->db->query($lock);
 		$messageIDsSql = "SELECT
-				`apns_messages`.`pid`,
-				'{$this->serverName}',
-				{$this->processID}
+				DISTINCT `apns_messages`.`fk_device` as device,
+				`apns_messages`.`pid` as pid ,
+				'{$this->serverName}' as server,
+				{$this->processID} as process
 			FROM `apns_messages`
 			LEFT JOIN `apns_devices` ON (`apns_devices`.`pid` = `apns_messages`.`fk_device` AND `apns_devices`.`clientid` = `apns_messages`.`clientid`)
 			LEFT JOIN `apns_queue` as `aq` ON `apns_messages`.`pid` = `aq`.`apns_message_pid`
@@ -1204,13 +1205,14 @@ class APNS {
 					$messageIDsSql .= " AND `apns_messages`.`clientid` in ('{$this->clientID}') \n";
 				}
 		
-		$messageIDsSql .= " GROUP BY `apns_messages`.`fk_device`
+		$messageIDsSql .= "
 			ORDER BY `apns_messages`.`created` ASC
 			LIMIT " . self::queueProcessingLimit;
 
 		$sql = "INSERT INTO `apns_queue`
 				(`apns_message_pid`, `server_name`, `process_id`)
-				{$messageIDsSql};";
+				SELECT pid, server,process from 
+				({$messageIDsSql}) tempTable;";
 		$this->db->query($sql);
 		$this->db->query($unlock);
 	}
@@ -1233,6 +1235,7 @@ class APNS {
 	 */
 	private function _processMessagesInQueue(){
 		$sql = "SELECT
+				DISTINCT `apns_messages`.`fk_device`,
 				`apns_messages`.`pid`,
 				`apns_messages`.`message`,
 				`apns_devices`.`devicetoken`,
@@ -1249,8 +1252,7 @@ class APNS {
 					$sql .= " AND `apns_messages`.`clientid` in ('{$this->clientID}') \n";
 				}
 		
-		$sql .= " GROUP BY `apns_messages`.`fk_device`
-			ORDER BY `apns_messages`.`created` ASC;";
+		$sql .= " ORDER BY `apns_messages`.`created` ASC;";
 
 		$this->_iterateMessages($sql);
 	}
