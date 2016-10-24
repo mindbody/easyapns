@@ -475,7 +475,8 @@ class APNS {
 				`apns_messages`.`pid`,
 				`apns_messages`.`message`,
 				`apns_devices`.`devicetoken`,
-				`apns_devices`.`development`
+				`apns_devices`.`development`,
+				`apns_messages`.`created`
 			FROM `apns_messages`
 			LEFT JOIN `apns_devices` ON (`apns_devices`.`pid` = `apns_messages`.`fk_device` AND `apns_devices`.`clientid` = `apns_messages`.`clientid`)
 			WHERE `apns_messages`.`status`='queued'
@@ -1192,7 +1193,8 @@ class APNS {
 				DISTINCT `apns_messages`.`fk_device` as device,
 				`apns_messages`.`pid` as pid ,
 				'{$this->serverName}' as server,
-				{$this->processID} as process
+				{$this->processID} as process,
+				`apns_messages`.`created`
 			FROM `apns_messages`
 			LEFT JOIN `apns_devices` ON (`apns_devices`.`pid` = `apns_messages`.`fk_device` AND `apns_devices`.`clientid` = `apns_messages`.`clientid`)
 			LEFT JOIN `apns_queue` as `aq` ON `apns_messages`.`pid` = `aq`.`apns_message_pid`
