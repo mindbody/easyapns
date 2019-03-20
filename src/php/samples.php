@@ -31,12 +31,11 @@
  * Begin Document
  */
 
-// AUTOLOAD CLASS OBJECTS... YOU CAN USE INCLUDES IF YOU PREFER
-if(!function_exists("__autoload")){ 
-	function __autoload($class_name){
-		require_once('classes/class_'.$class_name.'.php');
-	}
-}
+require_once('classes/APNS.php');
+require_once('classes/DbConnect.php');
+
+use easyapns\DbConnect;
+use easyapns\APNS;
 
 // CREATE DATABASE OBJECT ( MAKE SURE TO CHANGE LOGIN INFO IN CLASS FILE )
 $db = new DbConnect('localhost', 'apnsuser', 'apnspassword', 'apnsdb');
@@ -92,5 +91,3 @@ $apns->queueMessage();
 
 // SEND ALL MESSAGES NOW
 $apns->processQueue();
-
-?>

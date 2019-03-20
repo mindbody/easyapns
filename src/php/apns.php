@@ -28,16 +28,11 @@
  * @link http://code.google.com/p/easyapns/
  */
 
-/**
- * Begin Document
- */
+require_once('classes/APNS.php');
+require_once('classes/DbConnect.php');
 
-// AUTOLOAD CLASS OBJECTS... YOU CAN USE INCLUDES IF YOU PREFER
-if(!function_exists("__autoload")){ 
-	function __autoload($class_name){
-		require_once('classes/class_'.$class_name.'.php');
-	}
-}
+use easyapns\DbConnect;
+use easyapns\APNS;
 
 // CREATE DATABASE OBJECT ( MAKE SURE TO CHANGE LOGIN INFO )
 $db = new DbConnect('localhost', 'apnsuser', 'apnspassword', 'apnsdb');
@@ -48,4 +43,3 @@ $args = (!empty($_GET)) ? $_GET:array('task'=>$argv[1]);
 
 // CREATE APNS OBJECT, WITH DATABASE OBJECT AND ARGUMENTS
 $apns = new APNS($db, $args);
-?>

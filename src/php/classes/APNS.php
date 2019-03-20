@@ -19,6 +19,8 @@
 ## Author of file: Peter Schmalfeldt                                           ##
 #################################################################################
 
+namespace easyapns;
+
 /**
  * @category Apple Push Notification Service using PHP & MySQL
  * @package EasyAPNs
@@ -1272,4 +1274,3 @@ class APNS {
         $this->showErrors = $showErrors;
     }
 }
-?>

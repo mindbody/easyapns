@@ -1,0 +1,16 @@
+{
+    "name": "mindbody/easyapns",
+    "description": "PHP implementation for Apple Push Notification Service",
+    "license": "Apache-2.0",
+    "authors": [
+        {
+            "name": "Lucas Iturbide",
+            "email": "lucasiturbide@gmail.com"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "easyapns\\": "src/php/classes"
+        }
+    }
+}

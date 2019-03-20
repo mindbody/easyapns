@@ -19,6 +19,8 @@
 ## Authors of file: Peter Schmalfeldt & John Kramlich                          ##
 #################################################################################
 
+namespace easyapns;
+
 /**
  * @category Apple Push Notification Service using PHP & MySQL
  * @package EasyAPNs
@@ -467,5 +469,3 @@ class DbConnect
 		else die("There seems to have been a slight problem with our database, please try again later.<br /><br />\n$message");
 	}
 }
-
-?>
