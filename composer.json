@@ -9,8 +9,8 @@
         }
     ],
     "autoload": {
-        "psr-4": {
-            "easyapns\\": "src/php/classes"
+        "psr-0": {
+            "easyapns": "src/php/classes"
         }
     }
 }
