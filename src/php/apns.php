@@ -28,8 +28,7 @@
  * @link http://code.google.com/p/easyapns/
  */
 
-require_once('classes/APNS.php');
-require_once('classes/DbConnect.php');
+require_once('../../vendor/autoload.php');
 
 use easyapns\DbConnect;
 use easyapns\APNS;
